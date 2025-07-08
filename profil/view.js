@@ -1,49 +1,64 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const loader = document.getElementById('loader');
-    const errorMessage = document.getElementById('error-message');
-    const fieldsContainer = document.getElementById('fields-container');
-    const titleElement = document.getElementById('minisite-title');
-    const roleHierarchy = { 'offentlig': 0, 'bruger': 1, 'traener': 2, 'tekniker': 3, 'admin': 4 };
+// view.js – QRFlow visningsmotor v1.2
 
-    try {
-        const { minisite, role, error } = await getMinisiteByToken(token);
-        loader.style.display = 'none';
-        if (error || !minisite) {
-            throw new Error(error?.message || 'Kunne ikke finde minisite. Er din token korrekt?');
-        }
-        titleElement.textContent = minisite.title || 'QRFlow Side';
-        document.title = minisite.title || 'QRFlow Side';
-        const userAccessLevel = roleHierarchy[role];
-        const visibleFields = minisite.fields.filter(field => roleHierarchy[field.role] <= userAccessLevel);
-        if (visibleFields.length === 0) {
-            fieldsContainer.innerHTML = '<p>Der er intet indhold at vise for din adgangsrolle.</p>';
-            return;
-        }
-        renderFields(visibleFields);
-    } catch (e) {
-        loader.style.display = 'none';
-        errorMessage.textContent = `Fejl: ${e.message}`;
-        errorMessage.style.display = 'block';
-        console.error(e);
-    }
+// Forbind til Supabase
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+const supabase = createClient('https://https://kfoilmhcxhcfctrjungw.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtmb2lsbWhjeGhjZmN0cmp1bmd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5Nzg4MDAsImV4cCI6MjA2NzU1NDgwMH0.BN6klqpSaD4VhbelufB0r7VXaeV3kmfMLZhAgKxLaKg');
 
-    function renderFields(fields) {
-        fieldsContainer.innerHTML = '';
-        fields.forEach(field => {
-            const fieldEl = document.createElement('div');
-            fieldEl.className = 'field';
-            let contentHtml = '';
-            const safeContent = (field.content || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            switch (field.type) {
-                case 'image': contentHtml = `<img src="${safeContent}" alt="${field.title}">`; break;
-                case 'video': contentHtml = `<video controls src="${safeContent}"></video>`; break;
-                case 'document': contentHtml = `<a href="${safeContent}" target="_blank" rel="noopener noreferrer">Download ${field.title}</a>`; break;
-                default: contentHtml = `<p>${safeContent.replace(/\n/g, '<br>')}</p>`; break;
-            }
-            fieldEl.innerHTML = `<h3>${field.title}</h3><div class="field-content">${contentHtml}</div>`;
-            fieldsContainer.appendChild(fieldEl);
-        });
+// Udtræk token fra URL
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+const minisiteId = urlParams.get('id');
+
+// Hent brugerrolle baseret på token
+async function getUserRole(minisite) {
+  const accessTokens = minisite.access_tokens || [];
+  for (let access of accessTokens) {
+    if (access.token === token) return access.role;
+  }
+  return null;
+}
+
+// Hent og vis minisite
+async function loadMinisite() {
+  if (!minisiteId || !token) {
+    document.body.innerHTML = '<p>Mangler ID eller token.</p>';
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from('minisites')
+    .select('*')
+    .eq('id', minisiteId)
+    .single();
+
+  if (error || !data) {
+    document.body.innerHTML = '<p>Minisite ikke fundet.</p>';
+    return;
+  }
+
+  const role = await getUserRole(data);
+  if (!role) {
+    document.body.innerHTML = '<p>Ingen adgang – ugyldig token.</p>';
+    return;
+  }
+
+  const fields = data.fields || [];
+  const container = document.getElementById('fields-container');
+  container.innerHTML = '';
+
+  fields.forEach(field => {
+    if (
+      field.visibility === 'public' ||
+      role === 'admin' ||
+      (role === 'editor' && field.visibility !== 'private')
+    ) {
+      const el = renderField(field);
+      container.appendChild(el);
     }
-});
+  });
+}
+
+// Render felter
+function renderField(field) {
+  const wrapper = document.createElement('div');
+  wrapper.className =
