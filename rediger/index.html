@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rediger QRFlow</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .field-editor { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #fafafa; }
+        .field-editor label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .field-editor input, .field-editor textarea, .field-editor select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .field-controls { display: flex; justify-content: space-between; align-items: center; }
+        .field-controls .role-select { flex-grow: 1; margin-right: 10px; }
+        button { background-color: #4a5568; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
+        button.save-btn { background-color: #48bb78; }
+        button.add-btn { background-color: #4299e1; margin-bottom: 20px;}
+        button.delete-btn { background-color: #f56565; }
+        button:hover { opacity: 0.9; }
+        #status-indicator { margin-top: 20px; text-align: center; font-weight: bold; padding: 10px; border-radius: 5px; visibility: hidden; }
+        .status-success { background-color: #c6f6d5; color: #2f855a; visibility: visible; }
+        .status-error { background-color: #fed7d7; color: #c53030; visibility: visible; }
+        .status-saving { background-color: #feebc8; color: #975a16; visibility: visible; }
+        #loader, #auth-error { text-align: center; padding: 40px; font-size: 1.2em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rediger Side</h1>
+        <div id="loader">Henter data...</div>
+        <div id="auth-error" style="display:none; color: red;"></div>
+        <div id="editor-panel" style="display:none;">
+            <p><strong>Lagerbrug:</strong> <span id="storage-usage">0</span> / 50 MB</p>
+            <button id="add-field-btn" class="add-btn">Tilføj Nyt Felt</button>
+            <div id="fields-list"></div>
+            <button id="save-all-btn" class="save-btn">Gem Ændringer</button>
+            <div id="status-indicator"></div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../supabaseClient.js"></script>
+    <script src="edit.js"></script>
+</body>
+</html>
